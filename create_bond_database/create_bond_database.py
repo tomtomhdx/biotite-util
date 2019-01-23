@@ -124,7 +124,6 @@ if __name__ == "__main__":
 
     with tarfile.open(args.archive, mode="r") as mmtf_archive:
         members = mmtf_archive.getnames()
-    members = members[:10]
     # Put files into approximatley evenly sized chunks
     # for multiprocessing
     chunks = []
