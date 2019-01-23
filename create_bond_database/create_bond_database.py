@@ -74,7 +74,7 @@ def filter_bond_dict(bond_dict, threshold):
 def write_bond_dict(bond_dict, json_file):
     json_bonds = {}
     for group, group_bonds in bond_dict.items():
-        group_bond_list = []
+        group_bond_dict = {}
         for bond in group_bonds:
             atoms_in_bond = []
             for item in bond:
@@ -87,8 +87,8 @@ def write_bond_dict(bond_dict, json_file):
                         f"A bond tuple must not contain "
                         f"{type(item).__name__} objects"
                     )
-            group_bond_list.append(atoms_in_bond)
-        json_bonds[group] = group_bond_list
+            group_bond_dict[" ".join(atoms_in_bond)] = order
+        json_bonds[group] = group_bond_dict
     json.dump(json_bonds, json_file, separators=(",", ":"))
 
 
@@ -124,7 +124,7 @@ if __name__ == "__main__":
 
     with tarfile.open(args.archive, mode="r") as mmtf_archive:
         members = mmtf_archive.getnames()
-    members = members
+    members = members[:10]
     # Put files into approximatley evenly sized chunks
     # for multiprocessing
     chunks = []
