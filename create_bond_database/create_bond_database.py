@@ -1,5 +1,5 @@
 import argparse
-import json
+import msgpack
 import biotite.structure.io.pdbx as pdbx
 
 
@@ -11,7 +11,7 @@ BOND_ORDERS = {
 }
 
 
-def create_bond_dict(components_pdbx_file_path, json_file_path):
+def create_bond_dict(components_pdbx_file_path, msgpack_file_path):
     pdbx_file = pdbx.PDBxFile()
     pdbx_file.read(components_pdbx_file_path)
     components = pdbx_file.get_block_names()
@@ -25,14 +25,14 @@ def create_bond_dict(components_pdbx_file_path, json_file_path):
         if isinstance(cif_bonds["comp_id"], str):
             # Single string -> single bond
             group_bonds = {
-                " ".join(
-                    (cif_bonds["atom_id_1"], cif_bonds["atom_id_2"])
+                (
+                    cif_bonds["atom_id_1"], cif_bonds["atom_id_2"]
                 ) : BOND_ORDERS[cif_bonds["value_order"]]
             }
         else:
             # Looped values -> multiple bonds
             group_bonds = {
-                " ".join((atom1, atom2)) : BOND_ORDERS[order]
+                (atom1, atom2) : BOND_ORDERS[order]
                 for atom1, atom2, order
                 in zip(
                     cif_bonds["atom_id_1"],
@@ -41,8 +41,8 @@ def create_bond_dict(components_pdbx_file_path, json_file_path):
                 )
             }
         bond_dict[component] = group_bonds
-    with open(json_file_path, "w") as json_file:
-        json.dump(bond_dict, json_file, separators=(",", ":"))
+    with open(msgpack_file_path, "wb") as msgpack_file:
+        msgpack.dump(bond_dict, msgpack_file)
 
 
 if __name__ == "__main__":
@@ -57,7 +57,8 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "outfile",
-        help="The path to the file, where the output JSON should be placed."
+        help="The path to the file, where the output MessagePack file should "
+             "be placed."
     )
     args = parser.parse_args()
 
