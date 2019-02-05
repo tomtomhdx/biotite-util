@@ -27,7 +27,7 @@ def create_mass_dict(components_pdbx_file_path, msgpack_file_path):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Create a database, that contains the masses of all "
+        description="Create a dataset, that contains the masses of all "
                     "residues in the PDB."
                     "The information is based on a 'components.cif' file."
     )

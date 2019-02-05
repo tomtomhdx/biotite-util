@@ -47,7 +47,7 @@ def create_bond_dict(components_pdbx_file_path, msgpack_file_path):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Create a database, that contains the information which "
+        description="Create a dataset, that contains the information which "
                     "atoms are connected in a given residue. "
                     "The information is based on a 'components.cif' file."
     )
