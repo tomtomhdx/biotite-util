@@ -24,3 +24,6 @@ biotite.egg-info
 
 # Ignore fuse_hidden files on Linux systems
 *.fuse_hidden*
+
+# Ignore generated output files of MD simulations
+/example_trajectories/md/
