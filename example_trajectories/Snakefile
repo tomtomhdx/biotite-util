@@ -1,58 +1,48 @@
-workdir: "path/to/workdir"
+workdir: "./md"
 
 rule all:
     input:
-        "intermediate/lysozyme_gmx_nvt.pdb"
+        "lysozyme_gmx_nvt.pdb"
 
 
 rule download_lysozyme:
     output:
-        structure = "intermediate/lysozyme.pdb"
+        structure = "lysozyme.pdb"
     script:
         "download_lysozyme.py"
 
 
 rule prepare_structure:
     input:
-        structure = "intermediate/{structure}.pdb"
+        structure = "{structure}.pdb"
     output:
-        structure = "intermediate/{structure}_wohoh.pdb"
+        structure = "{structure}_wohoh.pdb"
     script:
         "prepare_structure.py"
 
 
 rule pdb_to_gmx:
     input:
-        structure = "intermediate/{structure}_wohoh.pdb"
+        structure = "{structure}_wohoh.pdb"
     output:
-        structure = "intermediate/{structure}_gmx.pdb",
-        topology = "intermediate/{structure}_gmx.top",
-        posres = "intermediate/{structure}_posre.itp"
-    run:
-        import os.path
-        shell(
-            "gmx pdb2gmx "
-            "-f {input.structure} "
-            "-o {output.structure} "
-            "-p {output.topology} "
-            "-i {output.posres} "
-            "-ff oplsaa "
-            "-water spce"
-        )
-        with open(output.topology, "r+") as file:
-            file.write(
-                file.read().replace(
-                    output.posres,
-                    os.path.basename(output.posres),
-                )
-            )
+        structure = "{structure}_gmx.pdb",
+        topology = "{structure}_gmx.top",
+        posres = "{structure}_posre.itp"
+    shell:
+        "gmx pdb2gmx "
+        "-f {input.structure} "
+        "-o {output.structure} "
+        "-p {output.topology} "
+        "-i {output.posres} "
+        "-ff oplsaa "
+        "-water spce"
 
 
 rule boxing:
     input:
-        structure = "intermediate/{structure}_gmx.pdb"
+        structure = "{structure}_gmx.pdb"
     output:
-        structure = "intermediate/{structure}_gmx_boxed.pdb"
+        structure = "{structure}_gmx_boxed.pdb"
     shell:
         "gmx editconf "
         "-f {input.structure} "
@@ -64,11 +54,11 @@ rule boxing:
 
 rule solvate:
     input:
-        structure = "intermediate/{structure}_gmx_boxed.pdb",
-        topology = "intermediate/{structure}_gmx.top"
+        structure = "{structure}_gmx_boxed.pdb",
+        topology = "{structure}_gmx.top"
     output:
-        structure = "intermediate/{structure}_gmx_solvated.pdb",
-        topology = "intermediate/{structure}_gmx_solvated.top"
+        structure = "{structure}_gmx_solvated.pdb",
+        topology = "{structure}_gmx_solvated.top"
     run:
         shell(
             "cp {input.topology} {output.topology}"
@@ -84,14 +74,14 @@ rule solvate:
 
 rule add_ions:
     input:
-        structure = "intermediate/{structure}_gmx_solvated.pdb",
-        topology = "intermediate/{structure}_gmx_solvated.top"
+        structure = "{structure}_gmx_solvated.pdb",
+        topology = "{structure}_gmx_solvated.top"
     output:
-        structure = "intermediate/{structure}_gmx_ions.pdb",
-        topology = "intermediate/{structure}_gmx_ions.top",
-        binary = temp("tpr/{structure}_ions.tpr")
+        structure = "{structure}_gmx_ions.pdb",
+        topology = "{structure}_gmx_ions.top",
+        binary = temp("../tpr/{structure}_ions.tpr")
     params:
-        mdp = "config/ions.mdp",
+        mdp = "../config/ions.mdp",
         solvent_group = "13"
     run:
         shell(
@@ -117,15 +107,15 @@ rule add_ions:
 
 rule minimization:
     input:
-        structure = "intermediate/{structure}_gmx_ions.pdb",
-        topology = "intermediate/{structure}_gmx_ions.top"
+        structure = "{structure}_gmx_ions.pdb",
+        topology = "{structure}_gmx_ions.top"
     output:
-        structure = "intermediate/{structure}_gmx_minim.pdb",
-        topology = "intermediate/{structure}_gmx_minim.top",
-        binary = temp("tpr/{structure}_minim.tpr"),
-        trajectory = temp("intermediate/{structure}_minim.trr")
+        structure = "{structure}_gmx_minim.pdb",
+        topology = "{structure}_gmx_minim.top",
+        binary = temp("../tpr/{structure}_minim.tpr"),
+        trajectory = temp("{structure}_minim.trr")
     params:
-        mdp = "config/minim.mdp"
+        mdp = "../config/minim.mdp"
     run:
         shell(
             "cp {input.topology} {output.topology}"
@@ -147,16 +137,17 @@ rule minimization:
 
 rule nvt_equilibration:
     input:
-        structure = "intermediate/{structure}_gmx_minim.pdb",
-        topology = "intermediate/{structure}_gmx_minim.top",
-        posres = "intermediate/{structure}_posre.itp"
+        structure = "{structure}_gmx_minim.pdb",
+        topology = "{structure}_gmx_minim.top",
+        posres = "{structure}_posre.itp"
     output:
-        structure = "intermediate/{structure}_gmx_nvt.pdb",
-        topology = "intermediate/{structure}_gmx_nvt.top",
-        binary = temp("tpr/{structure}_nvt.tpr"),
-        trajectory = "intermediate/{structure}_gmx_nvt.cpt"
+        structure = "{structure}_gmx_nvt.pdb",
+        topology = "{structure}_gmx_nvt.top",
+        binary = temp("../tpr/{structure}_nvt.tpr"),
+        trajectory = "{structure}_gmx_nvt.trr",
+        checkpoint = "{structure}_gmx_nvt.cpt"
     params:
-        mdp = "config/nvt.mdp"
+        mdp = "../config/nvt.mdp"
     run:
         shell(
             "cp {input.topology} {output.topology}"
@@ -173,23 +164,25 @@ rule nvt_equilibration:
             "gmx mdrun "
             "-s {output.binary} "
             "-o {output.trajectory} "
-            "-c {output.structure}"
+            "-c {output.structure} "
+            "-cpo {output.checkpoint}"
         )
 
 
 rule npt_equilibration:
     input:
-        structure = "intermediate/{structure}_gmx_nvt.pdb",
-        topology = "intermediate/{structure}_gmx_nvt.top",
-        trajectory = "intermediate/{structure}_gmx_nvt.cpt",
-        posres = "intermediate/{structure}_posre.itp"
+        structure = "{structure}_gmx_nvt.pdb",
+        topology = "{structure}_gmx_nvt.top",
+        checkpoint = "{structure}_gmx_nvt.cpt",
+        posres = "{structure}_posre.itp"
     output:
-        structure = "intermediate/{structure}_gmx_npt.pdb",
-        topology = "intermediate/{structure}_gmx_npt.top",
-        binary = temp("tpr/{structure}_npt.tpr"),
-        trajectory = "intermediate/{structure}_gmx_npt.cpt"
+        structure = "{structure}_gmx_npt.pdb",
+        topology = "{structure}_gmx_npt.top",
+        binary = temp("../tpr/{structure}_npt.tpr"),
+        trajectory = "{structure}_gmx_npt.trr",
+        checkpoint = "{structure}_gmx_npt.cpt"
     params:
-        mdp = "config/npt.mdp"
+        mdp = "../config/npt.mdp"
     run:
         shell(
             "cp {input.topology} {output.topology}"
@@ -199,7 +192,7 @@ rule npt_equilibration:
             "-f {params.mdp} "
             "-c {input.structure} "
             "-r {input.structure} "
-            "-t {input.trajectory}"
+            "-t {input.checkpoint} "
             "-p {output.topology} "
             "-o {output.binary}"
         ),
@@ -207,22 +200,23 @@ rule npt_equilibration:
             "gmx mdrun "
             "-s {output.binary} "
             "-o {output.trajectory} "
-            "-c {output.structure}"
+            "-c {output.structure} "
+            "-cpo {output.checkpoint}"
         )
 
 
 rule production_simulation:
     input:
-        structure = "intermediate/{structure}_gmx_npt.pdb",
-        topology = "intermediate/{structure}_gmx_npt.top",
-        trajectory = "intermediate/{structure}_gmx_npt.cpt"
+        structure = "{structure}_gmx_npt.pdb",
+        topology = "{structure}_gmx_npt.top",
+        checkpoint = "{structure}_gmx_npt.cpt"
     output:
-        structure = "output/{structure}_gmx_md.pdb",
-        topology = "intermediate/{structure}_gmx_md.top",
-        binary = temp("tpr/{structure}_md.tpr"),
-        trajectory = "output/{structure}_md.xtc"
+        structure = "{structure}_gmx_md.pdb",
+        topology = "{structure}_gmx_md.top",
+        binary = temp("../tpr/{structure}_md.tpr"),
+        trajectory = "{structure}_gmx_md.xtc"
     params:
-        mdp = "config/md.mdp"
+        mdp = "../config/md.mdp"
     run:
         shell(
             "cp {input.topology} {output.topology}"
@@ -231,7 +225,7 @@ rule production_simulation:
             "gmx grompp "
             "-f {params.mdp} "
             "-c {input.structure} "
-            "-t {input.trajectory}"
+            "-t {input.checkpoint} "
             "-p {output.topology} "
             "-o {output.binary}"
         ),
