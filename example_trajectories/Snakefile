@@ -16,26 +16,31 @@ rule prepare_structure:
     input:
         structure = "{structure}.pdb"
     output:
-        structure = "{structure}_wohoh.pdb"
+        structure = "{structure}_prepared.pdb"
     script:
         "prepare_structure.py"
 
 
 rule pdb_to_gmx:
     input:
-        structure = "{structure}_wohoh.pdb"
+        structure = "{structure}_prepared.pdb"
     output:
         structure = "{structure}_gmx.pdb",
         topology = "{structure}_gmx.top",
         posres = "{structure}_posre.itp"
-    shell:
-        "gmx pdb2gmx "
-        "-f {input.structure} "
-        "-o {output.structure} "
-        "-p {output.topology} "
-        "-i {output.posres} "
-        "-ff oplsaa "
-        "-water spce"
+    run:
+        shell(
+            "gmx pdb2gmx "
+            "-f {input.structure} "
+            "-o {output.structure} "
+            "-p {output.topology} "
+            "-i {output.posres} "
+            "-ff oplsaa "
+            "-water spce"
+        )
+        shell(
+            "touch {output.posres}"
+        )
 
 
 rule boxing:
@@ -101,7 +106,7 @@ rule add_ions:
             "-p {output.topology} "
             "-pname NA "
             "-nname CL "
-            "-neutral"
+            "-nn 8 "
         )
 
 
@@ -144,10 +149,9 @@ rule nvt_equilibration:
         structure = "{structure}_gmx_nvt.pdb",
         topology = "{structure}_gmx_nvt.top",
         binary = temp("../tpr/{structure}_nvt.tpr"),
-        trajectory = "{structure}_gmx_nvt.trr",
         checkpoint = "{structure}_gmx_nvt.cpt"
     params:
-        mdp = "../config/nvt.mdp"
+        mdp = "../config/nvt_{structure}.mdp"
     run:
         shell(
             "cp {input.topology} {output.topology}"
@@ -162,8 +166,8 @@ rule nvt_equilibration:
         ),
         shell(
             "gmx mdrun "
+            "-v "
             "-s {output.binary} "
-            "-o {output.trajectory} "
             "-c {output.structure} "
             "-cpo {output.checkpoint}"
         )
@@ -179,10 +183,9 @@ rule npt_equilibration:
         structure = "{structure}_gmx_npt.pdb",
         topology = "{structure}_gmx_npt.top",
         binary = temp("../tpr/{structure}_npt.tpr"),
-        trajectory = "{structure}_gmx_npt.trr",
         checkpoint = "{structure}_gmx_npt.cpt"
     params:
-        mdp = "../config/npt.mdp"
+        mdp = "../config/npt_{structure}.mdp"
     run:
         shell(
             "cp {input.topology} {output.topology}"
@@ -198,8 +201,8 @@ rule npt_equilibration:
         ),
         shell(
             "gmx mdrun "
+            "-v "
             "-s {output.binary} "
-            "-o {output.trajectory} "
             "-c {output.structure} "
             "-cpo {output.checkpoint}"
         )
@@ -216,7 +219,7 @@ rule production_simulation:
         binary = temp("../tpr/{structure}_md.tpr"),
         trajectory = "{structure}_gmx_md.xtc"
     params:
-        mdp = "../config/md.mdp"
+        mdp = "../config/md_{structure}.mdp"
     run:
         shell(
             "cp {input.topology} {output.topology}"
@@ -231,7 +234,51 @@ rule production_simulation:
         ),
         shell(
             "gmx mdrun "
+            "-v "
             "-s {output.binary} "
             "-x {output.trajectory} "
             "-c {output.structure}"
+        )
+
+
+
+
+rule generate_waterbox:
+    output:
+        structure = "waterbox_prepared.pdb"
+    shell:
+        "gmx solvate -o {output.structure} -box 5 5 5"
+
+
+rule salt_waterbox:
+    input:
+        structure = "waterbox_gmx.pdb",
+        topology = "waterbox_gmx.top"
+    output:
+        structure = "waterbox_gmx_ions.pdb",
+        topology = "waterbox_gmx_ions.top",
+        binary = temp("../tpr/waterbox_ions.tpr")
+    params:
+        mdp = "../config/ions.mdp",
+        solvent_group = "2"
+    run:
+        shell(
+            "cp {input.topology} {output.topology}"
+        ),
+        shell(
+            "gmx grompp "
+            "-f {params.mdp} "
+            "-c {input.structure} "
+            "-p {output.topology} "
+            "-o {output.binary}"
+        ),
+        shell(
+            "echo {params.solvent_group} | gmx genion "
+            "-s {output.binary} "
+            "-o {output.structure} "
+            "-p {output.topology} "
+            "-pname NA "
+            "-nname CL "
+            "-conc 0.15 "
+            "-neutral "
         )
