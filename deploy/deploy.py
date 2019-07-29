@@ -15,9 +15,9 @@ def fetch(path):
     return json.loads(r.text)
 
 
-def get_asset_urls(version=None):
+def get_asset_urls(version=None, package):
     rel_name = "latest" if version is None else f"tags/v{version}"
-    release = fetch(f"/repos/biotite-dev/biotite/releases/{rel_name}")
+    release = fetch(f"/repos/biotite-dev/{package}/releases/{rel_name}")
     if "message" in release and release["message"] == "Not Found":
         raise ValueError(f"Release 'v{version}' is not existing")
     assets = {}
@@ -39,13 +39,16 @@ def remote_exec(client, command):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Upload a Biotite release on GitHub to PyPI"
-                    "and deploy the documentation on the Biotite website"
-                    "host server"
+        description="Upload a Package release on GitHub to PyPI"
+                    "and deploy the documentation on the documentation "
+                    "website host server"
     )
     parser.add_argument(
         "--version", "-v", dest="version",
-        help="Biotite version to be distributed (latest by default)")
+        help="Version to be distributed (latest by default)")
+    parser.add_argument(
+        "--package", "-p", dest="package", default="biotite"
+        help="Name of the project to be distributed")
     args = parser.parse_args()
     
     temp_dir = biotite.temp_dir()
@@ -53,7 +56,7 @@ if __name__ == "__main__":
     os.mkdir(dist_dir)
     print("Download release assets...")
     for name, url in get_asset_urls(args.version).items():
-        if name.startswith("biotite"):
+        if name.startswith(args.package):
             # Distribution file (.whl or .tar.gz)
             fname = join(dist_dir, name)
         elif name == "doc.zip":
@@ -76,7 +79,7 @@ if __name__ == "__main__":
     hostname = input("Hostname: ")
     username = input("Username: ")
     password = getpass.getpass()
-    html_dir = "./biotite"
+    html_dir = f"./{args.package}"
 
     client = SSHClient()
     client.set_missing_host_key_policy(AutoAddPolicy)
