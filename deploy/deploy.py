@@ -76,7 +76,7 @@ if __name__ == "__main__":
     hostname = input("Hostname: ")
     username = input("Username: ")
     password = getpass.getpass()
-    html_dir = "./html"
+    html_dir = "./biotite"
 
     client = SSHClient()
     client.set_missing_host_key_policy(AutoAddPolicy)
