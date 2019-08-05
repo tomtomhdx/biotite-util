@@ -15,11 +15,13 @@ def fetch(path):
     return json.loads(r.text)
 
 
-def get_asset_urls(version=None, package):
+def get_asset_urls(package, version=None):
     rel_name = "latest" if version is None else f"tags/v{version}"
     release = fetch(f"/repos/biotite-dev/{package}/releases/{rel_name}")
     if "message" in release and release["message"] == "Not Found":
-        raise ValueError(f"Release 'v{version}' is not existing")
+        raise ValueError(
+            f"Release '{rel_name}' is not existing"
+        )
     assets = {}
     for asset in release["assets"]:
         assets[asset["name"]] = asset["browser_download_url"]
@@ -47,7 +49,7 @@ if __name__ == "__main__":
         "--version", "-v", dest="version",
         help="Version to be distributed (latest by default)")
     parser.add_argument(
-        "--package", "-p", dest="package", default="biotite"
+        "--package", "-p", dest="package", default="biotite",
         help="Name of the project to be distributed")
     args = parser.parse_args()
     
@@ -55,18 +57,21 @@ if __name__ == "__main__":
     dist_dir = join(temp_dir, "dist")
     os.mkdir(dist_dir)
     print("Download release assets...")
-    for name, url in get_asset_urls(args.version).items():
+    doc_url=None
+    for name, url in get_asset_urls(args.package, args.version).items():
         if name.startswith(args.package):
             # Distribution file (.whl or .tar.gz)
+            r = requests.get(url)
             fname = join(dist_dir, name)
+            with open(fname, "wb") as file:
+                file.write(r.content)
         elif name == "doc.zip":
             # Documentation file
-            fname = join(temp_dir, name)
+            doc_url = url
         else:
             raise ValueError(f"Unknown asset '{name}'")
-        r = requests.get(url)
-        with open(fname, "wb") as file:
-            file.write(r.content)
+    if doc_url is None:
+        raise ValueError("Release has no documentation")
 
 
     # Upload distributions to PyPI
@@ -84,12 +89,11 @@ if __name__ == "__main__":
     client = SSHClient()
     client.set_missing_host_key_policy(AutoAddPolicy)
     client.connect(hostname=hostname, username=username, password=password)
-    sftp = client.open_sftp()
 
-    # Place documentation into home directory
-    sftp.put(join(temp_dir, "doc.zip"), "./doc.zip")
     # Naviagte into home directory
     remote_exec(client, f"cd /home/{username}")
+    # Download zipped documentation into home directory
+    remote_exec(client, f"wget -q {doc_url}")
     # Remove currently published documentation
     remote_exec(client, f"rm -rf {html_dir}/*")
     # Make sure that the directory we unpack to is not existing
@@ -103,4 +107,3 @@ if __name__ == "__main__":
     remote_exec(client, f"rm doc.zip")
 
     client.close()
-    sftp.close()
