@@ -38,7 +38,7 @@ def create(pdb_id, directory):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Create structure files for unit tests "
-                    "in all supported formats from PDB ID"
+                    "in all supported formats from PDB ID "
                     "(excluding GROMACS trajectory files)"
     )
     parser.add_argument(
