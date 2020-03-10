@@ -51,15 +51,15 @@ def create_residue_dict(components_pdbx_file_path, msgpack_file_path):
         # for some entries only 'pdbx_model_Cartn_ideal' and
         # for some entries none of them is defined
         try:
-            array.coord[:,0] = cif_atoms["model_Cartn_x_ideal"]
-            array.coord[:,1] = cif_atoms["model_Cartn_y_ideal"]
-            array.coord[:,2] = cif_atoms["model_Cartn_z_ideal"]
-        except KeyError:
+            array.coord[:,0] = cif_atoms["pdbx_model_Cartn_x_ideal"]
+            array.coord[:,1] = cif_atoms["pdbx_model_Cartn_y_ideal"]
+            array.coord[:,2] = cif_atoms["pdbx_model_Cartn_z_ideal"]
+        except (KeyError, ValueError):
             try:
-                array.coord[:,0] = cif_atoms["pdbx_model_Cartn_x"]
-                array.coord[:,1] = cif_atoms["pdbx_model_Cartn_y"]
-                array.coord[:,2] = cif_atoms["pdbx_model_Cartn_z"]
-            except KeyError:
+                array.coord[:,0] = cif_atoms["model_Cartn_x"]
+                array.coord[:,1] = cif_atoms["model_Cartn_y"]
+                array.coord[:,2] = cif_atoms["model_Cartn_z"]
+            except (KeyError, ValueError):
                 # If none of them is defined, skip this component
                 continue
             
