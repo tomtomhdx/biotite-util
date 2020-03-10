@@ -49,18 +49,18 @@ def create_residue_dict(components_pdbx_file_path, msgpack_file_path):
         
         # For some entries only 'model_Cartn',
         # for some entries only 'pdbx_model_Cartn_ideal' and
-        # for some entries none of them is defines
+        # for some entries none of them is defined
         try:
-            array.coord[:,0] = cif_atoms["model_Cartn_x"]
-            array.coord[:,1] = cif_atoms["model_Cartn_y"]
-            array.coord[:,2] = cif_atoms["model_Cartn_z"]
+            array.coord[:,0] = cif_atoms["model_Cartn_x_ideal"]
+            array.coord[:,1] = cif_atoms["model_Cartn_y_ideal"]
+            array.coord[:,2] = cif_atoms["model_Cartn_z_ideal"]
         except ValueError:
             try:
-                array.coord[:,0] = cif_atoms["pdbx_model_Cartn_x_ideal"]
-                array.coord[:,1] = cif_atoms["pdbx_model_Cartn_y_ideal"]
-                array.coord[:,2] = cif_atoms["pdbx_model_Cartn_z_ideal"]
+                array.coord[:,0] = cif_atoms["pdbx_model_Cartn_x"]
+                array.coord[:,1] = cif_atoms["pdbx_model_Cartn_y"]
+                array.coord[:,2] = cif_atoms["pdbx_model_Cartn_z"]
             except ValueError:
-                # If noneof them is defined, skip this component
+                # If none of them is defined, skip this component
                 continue
             
         bonds = struc.BondList(array.array_length())
