@@ -19,8 +19,8 @@ def create_residue_dict(components_pdbx_file_path, msgpack_file_path):
     components = pdbx_file.get_block_names()
     residue_dict = {}
     
-    for component in components:
-        print(component)
+    for i, component in enumerate(components):
+        print(f"{component:3}   {int(i/len(components)*100):>3d}%", end="\r")
         try:
             # Some entries use invalid quotation for the component name
             cif_general = pdbx_file.get_category("chem_comp", block=component)
@@ -54,12 +54,12 @@ def create_residue_dict(components_pdbx_file_path, msgpack_file_path):
             array.coord[:,0] = cif_atoms["model_Cartn_x_ideal"]
             array.coord[:,1] = cif_atoms["model_Cartn_y_ideal"]
             array.coord[:,2] = cif_atoms["model_Cartn_z_ideal"]
-        except ValueError:
+        except KeyError:
             try:
                 array.coord[:,0] = cif_atoms["pdbx_model_Cartn_x"]
                 array.coord[:,1] = cif_atoms["pdbx_model_Cartn_y"]
                 array.coord[:,2] = cif_atoms["pdbx_model_Cartn_z"]
-            except ValueError:
+            except KeyError:
                 # If none of them is defined, skip this component
                 continue
             
