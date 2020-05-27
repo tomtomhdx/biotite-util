@@ -9,30 +9,22 @@ import biotite.database.rcsb as rcsb
 import biotite.structure.io as strucio
 
 
-def create(pdb_id, directory):
-    # Delete existing files:
-    for suffix in ["pdb", "cif", "mmtf", "npz", "gro"]:
-        try:
-            os.remove(join(directory, f"{pdb_id}.{suffix}"))
-        except FileNotFoundError:
-            pass
+def create(pdb_id, directory, include_gro):
     # Create *.pdb", *.cif and *.mmtf
     for file_format in ["pdb", "cif", "mmtf"]:
         rcsb.fetch(pdb_id, file_format, directory)
-    # Create *.npz file
-    structure = strucio.load_structure(join(directory, pdb_id+".cif"))
-    strucio.save_structure(join(directory, pdb_id+".npz"), structure)
-    # Create *.gro file using GROMACS
-    # Clean PDB file -> remove inscodes and altlocs
-    array = strucio.load_structure(join(directory, pdb_id+".pdb"))
-    cleaned_file_name = biotite.temp_file("pdb")
-    strucio.save_structure(cleaned_file_name, array)
-    # Run GROMACS for file conversion
-    subprocess.run([
-        "gmx", "editconf",
-        "-f", cleaned_file_name,
-        "-o", join(directory, pdb_id+".gro")
-    ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    if include_gro:
+        # Create *.gro files using GROMACS
+        # Clean PDB file -> remove inscodes and altlocs
+        array = strucio.load_structure(join(directory, pdb_id+".pdb"))
+        cleaned_file_name = biotite.temp_file("pdb")
+        strucio.save_structure(cleaned_file_name, array)
+        # Run GROMACS for file conversion
+        subprocess.run([
+            "gmx", "editconf",
+            "-f", cleaned_file_name,
+            "-o", join(directory, pdb_id+".gro")
+        ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
 if __name__ == "__main__":
@@ -53,6 +45,10 @@ if __name__ == "__main__":
         "--file", "-f", dest="file",
         help="read mutliple PDB IDs from text file (line break separated IDs)"
     )
+    parser.add_argument(
+        "--gromacs", "-g", action="store_true", dest="include_gro",
+        help="Create '*.gro' files using the Gromacs software"
+    )
     args = parser.parse_args()
     
     if args.file is not None:
@@ -65,5 +61,7 @@ if __name__ == "__main__":
         logging.error("Must specifiy PDB ID(s)")
         sys.exit()
     
-    for pdb_id in pdb_ids:
-        create(pdb_id, args.directory)
+    for i, pdb_id in enumerate(pdb_ids):
+        print(f"{i:2d}/{len(pdb_ids):2d}: {pdb_id}", end="\r")
+        print()
+        create(pdb_id, args.directory, args.include_gro)
