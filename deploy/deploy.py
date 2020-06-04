@@ -3,8 +3,8 @@ from os.path import join
 import os
 import sys
 import json
+import tempfile
 import getpass
-import biotite
 import requests
 from paramiko.client import SSHClient, AutoAddPolicy
 from twine.commands.upload import main as twine_upload
@@ -53,7 +53,7 @@ if __name__ == "__main__":
         help="Name of the project to be distributed")
     args = parser.parse_args()
     
-    temp_dir = biotite.temp_dir()
+    temp_dir = tempfile.gettempdir()
     dist_dir = join(temp_dir, "dist")
     os.mkdir(dist_dir)
     print("Download release assets...")
