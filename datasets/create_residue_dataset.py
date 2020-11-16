@@ -40,7 +40,10 @@ def create_residue_dict(components_pdbx_file_path, msgpack_file_path):
         array.res_name = cif_atoms["comp_id"]
         array.atom_name = cif_atoms["atom_id"]
         array.element = cif_atoms["type_symbol"]
-        array.charge = cif_atoms["charge"]
+        array.add_annotation("charge", int)
+        array.charge = np.array(
+            [int(c) if c != "?" else 0 for c in cif_atoms["charge"]]
+        )
         if cif_general is None:
             array.hetero[:] = True
         else:
