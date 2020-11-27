@@ -57,6 +57,7 @@ def process(input, output, chain):
             (int(res_ids[0]), int(res_ids[1]), int(edges[0]), int(edges[1]))
         )
 
+    output_list = np.unique(output_list, axis=0).tolist()
     with open(output, 'w') as f:
         json.dump(output_list, f, indent=1)
 

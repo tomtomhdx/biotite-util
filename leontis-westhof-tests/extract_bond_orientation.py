@@ -1,5 +1,6 @@
 import pandas as pd
 import argparse
+import numpy as np
 import json
 
 def process(input, output, chain):
@@ -48,7 +49,7 @@ def process(input, output, chain):
         this_output = sorted((int(res_ids[0]), int(res_ids[1])))
         this_output.append(int(sugar_orientation))
         output_list.append(this_output)
-
+    output_list = np.unique(output_list, axis=0).tolist()
     with open(output, 'w') as f:
         json.dump(output_list, f, indent=1)
 
