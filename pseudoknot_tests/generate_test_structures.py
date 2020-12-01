@@ -29,7 +29,8 @@ def process(output):
     df = pd.DataFrame(columns)
 
     df.to_csv(f"{output}_knotted.bp", sep=' ', index=False, header=False)
-    pkl.dump(basepairs, f"{output}_knotted.pkl")
+    with open(f"{output}_knotted.pkl",'wb') as f:
+        pkl.dump(basepairs, f)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
