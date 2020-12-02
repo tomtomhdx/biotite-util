@@ -24,7 +24,7 @@ def process(output):
             right_column.append(pair[value])
         else:
             right_column.append(0)
-    columns = [left_column, ['N']*BASES, right_column]
+    columns = list(zip(left_column, ['N']*BASES, right_column))
 
     df = pd.DataFrame(columns)
 
